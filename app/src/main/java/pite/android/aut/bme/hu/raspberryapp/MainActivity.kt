@@ -12,27 +12,27 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
 
     var raspberryAPI = RaspberryAPI.instance
-   // var mywebview: WebView? = null
-
+    var counter = 0;
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        async{raspberryAPI.getIndex()}
 
         btnLogin.setOnClickListener {
-            async {
+            raspberryAPI.setURL(etIPAddress.text.toString())
+                async {
+                    raspberryAPI.getMainPage(etIPAddress.text.toString()) // get main page
+                    raspberryAPI.postPass(etPassword.text.toString()) // login
+                    raspberryAPI.getZones()
+                    val intent = Intent(this,MenuActivity::class.java)
+                    intent.putExtra("cookie",raspberryAPI.csrf_token)
+                    intent.putExtra("xsrf", raspberryAPI._xsrf)
+                    startActivity(intent)
+                }
 
-                //raspberryAPI.getIndex()
-                raspberryAPI.postPass(etPassword.text.toString())
-                raspberryAPI.postPass2(etPassword.text.toString())
-                raspberryAPI.getControl()
-              //  rasberryAPI.start
-            }
-            val intent = Intent(this,MenuActivity::class.java)
+           /* val intent = Intent(this,MenuActivity::class.java)
             intent.putExtra("cookie",raspberryAPI.csrf_token)
             intent.putExtra("xsrf", raspberryAPI._xsrf)
-            //intent.putExtra("raspib", raspberryAPI)
-            startActivity(intent)
+            startActivity(intent)*/
         }
     }
 
@@ -47,10 +47,10 @@ class MainActivity : AppCompatActivity() {
         //mywebview!!.loadUrl(response)
     }
 
-    private fun async(call: () -> String) {
+    private fun async(call: () -> Unit) {
         Thread {
             val response = call()
-            runOnUiThread { showResponse(response) }
+            runOnUiThread { counter++ }
         }.start()
     }
 }

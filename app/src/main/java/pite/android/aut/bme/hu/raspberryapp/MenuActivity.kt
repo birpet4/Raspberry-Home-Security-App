@@ -19,6 +19,8 @@ class MenuActivity : AppCompatActivity() {
         val _xsrf = intent.getStringExtra("xsrf")
 
         val raspberryAPI = RaspberryAPI.instance
+        var zones = raspberryAPI.getZonesList()
+
         btnStartPCA.setOnClickListener {
             val zone: HashMap<String, Boolean> = hashMapOf(swBedroom.text.toString() to swBedroom.isChecked,swDiningRoom.text.toString() to swDiningRoom.isChecked, swFrontEntrance.text.toString() to swFrontEntrance.isChecked,
                     swHallway.text.toString() to swHallway.isChecked,swLivingRoom.text.toString() to swLivingRoom.isChecked, swKitchen.text.toString() to swKitchen.isChecked)

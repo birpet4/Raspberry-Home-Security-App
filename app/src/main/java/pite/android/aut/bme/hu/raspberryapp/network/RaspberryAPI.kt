@@ -10,11 +10,19 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLSession
 import android.util.Base64.NO_WRAP
 import android.widget.Toast
+import com.beust.klaxon.Json
+import com.beust.klaxon.JsonObject
+import com.beust.klaxon.Klaxon
+import com.beust.klaxon.Parser
 import okhttp3.*
 import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
 import com.franmontiel.persistentcookiejar.cache.SetCookieCache
 import com.franmontiel.persistentcookiejar.PersistentCookieJar
 import com.franmontiel.persistentcookiejar.ClearableCookieJar
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+//import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import java.io.Serializable
 import java.net.CookiePolicy
 
@@ -29,12 +37,14 @@ public class RaspberryAPI private constructor(){
     private object Holder {
         val INSTANCE = RaspberryAPI()
     }
-
+    data class Zones(val title:Boolean?)
+    data class Zone(val zones: Map<String,Boolean>)
     companion object {
         val instance: RaspberryAPI by lazy {
             Holder.INSTANCE
         }
-        private const val BASE_URL = "https://"
+        private var zones_json : String? = ""
+        private var BASE_URL = "https://"
         private const val UTF_8 = "UTF-8"
         private const val TAG = "Network"
         private const val RESPONSE_ERROR = "ERROR"
@@ -61,7 +71,7 @@ public class RaspberryAPI private constructor(){
 
     /** ------------------ Private Methods ------------------ **/
 
-    private fun httpGet(url: String): Int {
+    private fun httpGet(url: String): String {
         val request = Request.Builder()
                 .url(url)
                 .build()
@@ -86,7 +96,7 @@ public class RaspberryAPI private constructor(){
         _xsrf = string
         println(response)
         println(response.headers())
-        return response.code()
+        return response.body()?.string() ?: "EMPTY"
     }
 
     private fun httpGetControl(url: String) : String {
@@ -101,6 +111,19 @@ public class RaspberryAPI private constructor(){
 
         val response = client.newCall(request).execute()
         return response.body()?.string() ?: "EMPTY"
+    }
+
+
+    private fun httpGetZones(url: String) : String {
+        val request = Request.Builder()
+                .url(url)
+                .addHeader("Cookie", csrf_token)
+                .build()
+        val response = client.newCall(request).execute()
+        zones_json = response.body()?.string()
+        //println("ZONAK: ")
+        println(zones_json)
+        return zones_json ?: "EMPTY"
     }
 
     private fun httpPost(url: String, password: String) : String {
@@ -152,6 +175,21 @@ public class RaspberryAPI private constructor(){
 
     /** ------------------ Public Methods ------------------ **/
 
+
+    fun getZonesList() :MutableSet<String> {
+        val parser: Parser = Parser()
+        val stringBuilder: StringBuilder = StringBuilder(zones_json)
+        val json: JsonObject = parser.parse(stringBuilder) as JsonObject
+        return json.keys
+    }
+
+    fun setURL(url: String) {
+        BASE_URL += url
+    }
+
+    fun setXSRFToken(token: String) {
+        csrf_token = token
+    }
     fun httpPostStop(url : String):String{
         val stringbody2 = "&on=off&zone="
         val request = Request.Builder()
@@ -178,21 +216,26 @@ public class RaspberryAPI private constructor(){
         return ""
     }
 
-    fun getIndex() : Int {
+    fun getMainPage(url: String) : String {
         return try {
-            val indexUrl = "$BASE_URL"
-
-            Log.d(TAG, "Call to $indexUrl")
-            httpGet(indexUrl)
-
+            Log.d(TAG, "Call to $url")
+            httpGet(BASE_URL)
         } catch (e: Exception) {
             e.printStackTrace()
             RESPONSE_ERROR
-
-
         }
     }
 
+    fun getZones() :String {
+        return try {
+            val url = "$BASE_URL" + "/zones"
+            Log.d(TAG,"Call to $url")
+            httpGetZones(url)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            RESPONSE_ERROR
+        }
+    }
     fun postPass(password: String) : String {
         return try {
             val indexUrl = "$BASE_URL" + "/login"
@@ -224,7 +267,7 @@ public class RaspberryAPI private constructor(){
 
     fun getControl() : String {
         return try {
-            val indexUrl = "https://192.168.1.106:8080/control"
+            val indexUrl = BASE_URL + "/control"
 
             Log.d(TAG, "Call to $indexUrl")
             httpGetControl(indexUrl)
@@ -243,7 +286,7 @@ public class RaspberryAPI private constructor(){
 
     fun startPCA(cookie: String, xsrf: String, zone:HashMap<String,Boolean>) :String {
         return try {
-            val indexUrl = "https://192.168.1.106:8080/control"
+            val indexUrl = BASE_URL + "/control"
 
             Log.d(TAG, "Call to $indexUrl")
             httpPostStart(indexUrl,cookie,xsrf, zone)
@@ -261,7 +304,7 @@ public class RaspberryAPI private constructor(){
 
     fun stopPCA(context: Context) :String {
         return try {
-            val indexUrl = "https://192.168.1.106:8080/control"
+            val indexUrl = BASE_URL + "/control"
 
             Log.d(TAG, "Call to $indexUrl")
             httpPostStop(indexUrl)
