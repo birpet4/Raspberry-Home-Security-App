@@ -149,15 +149,22 @@ public class RaspberryAPI private constructor(){
     }
 
     private fun httpPostStart(url: String,cookie:String, xsrf: String,zone:HashMap<String,Boolean>) : String {
-
+        var i = 0
         val keys: MutableSet<String> = zone.keys
-        val postMessage = "&on=true&zone=%7B%22bedroom%22%3A" + zone.getValue("Bedroom") +
+        /*val postMessage = "&on=true&zone=%7B%22bedroom%22%3A" + zone.getValue("Bedroom") +
                 "+%2C%22living+room%22%3A" + zone.getValue("Living Room") +
                 "+%2C%22hallway%22%3A" + zone.getValue("Hallway") +
                 "+%2C%22kitchen%22%3A" + zone.getValue("Kitchen") +
                 "+%2C%22dining+room%22%3A" + zone.getValue("Dining Room") +
-                "+%2C%22front+entrance%22%3A" + zone.getValue("Front Entrance") + "+%7D"
-
+                "+%2C%22front+entrance%22%3A" + zone.getValue("Front Entrance") + "+%7D"*/
+        var postMessage = "&on=true&zone=%7B%22"
+        for(zone in zone) {
+            var zone_string = zone.key.toString().toLowerCase()
+            zone_string = zone_string.replace("\\s".toRegex(), "+")
+            postMessage += zone_string + "%22%3A" + zone.value + "+%2C%22"
+        }
+        postMessage = postMessage.replaceAfterLast("+", "%7D")
+        println(postMessage)
         val request = Request.Builder()
                 .url(url)
                 //.addHeader("Referer","https://192.168.1.106:8080/control")
